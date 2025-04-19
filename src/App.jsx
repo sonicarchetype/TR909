@@ -3164,7 +3164,7 @@ function Layout({children}) {
 function TheGitHubCat ({sizeFactor=1}) {
   const theCatItself = <div
   style={{margin: '10px'}}> 
-    <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center' }}>
+    <a href="https://github.com/sonicarchetype/TR909" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center' }}>
       <img src={githubLogo} alt="GitHub" width={24*sizeFactor} height={24*sizeFactor} style={{ marginRight: '5px'}} />
     </a>
   </div>
@@ -3705,21 +3705,25 @@ function HelpBar () {
  * @returns {JSX.Element} The NameBar component containing the Sonic Archetype logo
  */
 function NameBar () {
-  const SA_logo = <img
-  id='SA-logo' 
-  src="/SA-logo-proto.svg" 
-  alt="Sonic Archetype Logo"
-  style={{
-    width: 'auto',
-    height: '100%',
-    objectFit: 'contain',
-    filter: 'brightness(1.2)',
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)'
-  }}
-/>
+  const SA_logo = (
+    <a href="https://sonicarchetype.com" target="_blank" rel="noopener noreferrer">
+      <img
+        id='SA-logo' 
+        src="/SA-logo-proto.svg" 
+        alt="Sonic Archetype Logo"
+        style={{
+          width: 'auto',
+          height: '100%',
+          objectFit: 'contain',
+          filter: 'brightness(1.2)',
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)'
+        }}
+      />
+    </a>
+  )
   return <div id='name-bar-container' style={{
     width: '100%', height: '82px', display: 'flex',
   }}>
