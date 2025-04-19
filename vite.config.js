@@ -4,7 +4,7 @@ import { copyFileSync } from 'fs'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/TR909/',
+  base: '/tr909/',
   server: {
     port: 16,
     host: true,
