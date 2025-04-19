@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <link rel="icon" type="image/svg+xml" href="/TR-909-fav13.svg" /> -->
+    <link rel="icon" type="image" href="/favicon.png">
+    <meta name="viewport" 
+    content="width=device-width, initial-scale=1.0" />
+    <title>TR-909</title>
+    <script>
+      // Register service worker for caching sound data
+      // Make this function available globally to ensure it's accessible everywhere
+      window.checkForSoundDataUpdates = function() {
+        if (window.swRegistration && window.swRegistration.active) {
+          // Send message to service worker to check for updates
+          window.swRegistration.active.postMessage({
+            action: 'checkForUpdates'
+          });
+        }
+      };
+      
+      // Safari-compatible service worker registration
+      if ('serviceWorker' in navigator) {
+        // Declare swRegistration in global scope
+        window.swRegistration = null;
+        
+        // Initialize service worker in a more robust way
+        function initServiceWorker() {
+          // Listen for messages from service worker
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data.action === 'updateAvailable') {
+              if (event.data.needsRefresh) {
+                console.log('Sound data update available - refresh will load new version');
+                // Optionally show a notification to the user that a refresh is required
+                // or automatically refresh the page
+              } else {
+                console.log('Sound data is up to date');
+              }
+            } else if (event.data.action === 'updateError') {
+              console.error('Error checking for sound data updates:', event.data.error);
+            }
+          });
+          
+          // Register service worker with a retry mechanism for Safari
+          const MAX_RETRIES = 3;
+          let retryCount = 0;
+          
+          function registerSW() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+                window.swRegistration = registration;
+                
+                // Check for updates on page load
+                window.checkForSoundDataUpdates();
+                
+                // Check for updates when service worker becomes active
+                registration.addEventListener('updatefound', () => {
+                  const newWorker = registration.installing;
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated') {
+                      window.checkForSoundDataUpdates();
+                    }
+                  });
+                });
+              })
+              .catch(error => {
+                console.error('Service Worker registration failed:', error);
+                // Retry registration with increasing delays for Safari
+                if (retryCount < MAX_RETRIES) {
+                  retryCount++;
+                  const delay = retryCount * 1000; // Exponential backoff
+                  console.log(`Retrying service worker registration in ${delay}ms...`);
+                  setTimeout(registerSW, delay);
+                }
+              });
+          }
+          
+          registerSW();
+        }
+        
+        // Wait for page load to initialize service worker
+        if (document.readyState === 'complete') {
+          initServiceWorker();
+        } else {
+          window.addEventListener('load', initServiceWorker);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>
