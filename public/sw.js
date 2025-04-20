@@ -5,7 +5,12 @@ const APP_ASSETS = [
   '/',
   '/index.html',
   '/src/index.jsx',
-  '/package.json'  // Add package.json to required assets
+  '/package.json',
+  // CSS files
+  '/css/main.css',
+  // Images & icons
+  '/favicon.ico',
+  '/icon.png',
   // Add other critical assets here
 ];
 
@@ -94,7 +99,10 @@ self.addEventListener('activate', (event) => {
           })
         );
       })
-      .then(() => self.clients.claim()) // Take control of all clients
+      .then(() => {
+        // Take control of all clients immediately
+        return self.clients.claim();
+      })
   );
 });
 
@@ -102,14 +110,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Bypass service worker for /manual route
-  // if (event.request.mode === 'navigate' && url.pathname === '/manual') {
-  //   console.log('Bypassing service worker for /manual route');
-  //   event.respondWith(fetch(event.request));
-  //   return;
-  // }
-  
-  // Handle sound data specifically - use a reliable strategy
+  // Special handling for sound data file
   if (url.pathname.includes('sound.tr909data')) {
     event.respondWith(
       caches.match(event.request)
@@ -119,6 +120,7 @@ self.addEventListener('fetch', (event) => {
             // Return cached response immediately
             return cachedResponse;
           }
+          
           // If not in cache, fetch from network
           console.log('Service Worker: Fetching sound data from network');
           return fetch(event.request)
@@ -126,19 +128,18 @@ self.addEventListener('fetch', (event) => {
               if (!networkResponse.ok) {
                 throw new Error('Network response was not ok');
               }
+              
               // Clone the response before caching
               const responseToCache = networkResponse.clone();
+              
               // Cache in the background (don't wait for it to complete)
               caches.open(CACHE_NAME)
                 .then(cache => {
-                  try {
-                    cache.put(event.request, responseToCache)
-                      .catch(err => console.error('Cache put error:', err));
-                  } catch (err) {
-                    console.error('Cache operation error:', err);
-                  }
+                  cache.put(event.request, responseToCache)
+                    .catch(err => console.error('Cache put error:', err));
                 })
                 .catch(err => console.error('Cache open error:', err));
+                
               return networkResponse;
             })
             .catch(error => {
@@ -163,6 +164,12 @@ self.addEventListener('fetch', (event) => {
         })
     );
   }
+  // Handle audio context wake requests for iOS
+  else if (url.pathname.includes('/wake-audio')) {
+    event.respondWith(new Response('OK', {
+      headers: { 'Content-Type': 'text/plain' }
+    }));
+  }
   // For other app assets, use cache-first strategy
   else if (APP_ASSETS.includes(url.pathname) || url.pathname === '/') {
     event.respondWith(
@@ -181,12 +188,29 @@ self.addEventListener('fetch', (event) => {
             });
         })
     );
+  } else {
+    // Network-first for everything else
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
   }
 });
 
 // Handle messages from the client
 self.addEventListener('message', (event) => {
-  if (event.data.action === 'checkForUpdates') {
+  // Handle audio wake request from iOS
+  if (event.data.action === 'wakeAudio') {
+    // Respond to confirm receipt of the wake request
+    event.source.postMessage({
+      action: 'audioWake',
+      success: true
+    });
+  }
+  // Handle update checks
+  else if (event.data.action === 'checkForUpdates') {
     // Fetch the sound data file from network to check if it's changed
     fetch(SOUND_URL, { cache: 'no-store' })
       .then(networkResponse => {

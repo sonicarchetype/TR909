@@ -3845,14 +3845,54 @@ function App() {
     engine && engine.writeLocalStorage()
   }
 
+  // Add iOS audio context initialization helper
+  useEffect(() => {
+    if (!engine) return;
+    
+    // Detect iOS devices
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                 (navigator.userAgentData?.platform === 'iOS' || 
+                  (/Mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+    
+    if (isIOS) {
+      // Create a one-time event listener for the first user interaction
+      const initAudio = async () => {
+        await engine.ensureAudioContextResumed();
+        
+        // Remove all event listeners after first interaction
+        ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(event => {
+          document.removeEventListener(event, initAudio);
+        });
+      };
+      
+      // Add listeners for common user interactions
+      ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(event => {
+        document.addEventListener(event, initAudio, { once: true });
+      });
+      
+      // Cleanup on unmount
+      return () => {
+        ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(event => {
+          document.removeEventListener(event, initAudio);
+        });
+      };
+    }
+  }, [engine]);
+
   // Handle browser-specific audio behavior when tab visibility changes
   document.addEventListener("visibilitychange", async () => {
     if (document.hidden) {
-      (!navigator.userAgent.includes("Chrome") | 
-      !navigator.userAgent.includes("Mozilla")) && engine && await engine.safariOnlyStopIfPlayed()
+      // When tab is hidden, save state and suspend audio if necessary
+      engine && engine.writeLocalStorage();
+      
+      // Let Engine know the tab is hidden so it can properly handle audio
+      engine && await engine.handleVisibilityHidden();
     } else {
-      (navigator.userAgent.includes("Chrome") | 
-      navigator.userAgent.includes("Mozilla")) && engine && engine.safariOnlyResumeIfStopped()
+      // When tab becomes visible again, ensure audio context is ready
+      if (engine) {
+        // Force audio context to resume when returning to the tab
+        await engine.handleVisibilityVisible();
+      }
     }
   })
   

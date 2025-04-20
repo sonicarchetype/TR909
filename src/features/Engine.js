@@ -218,11 +218,67 @@ class Engine {
   #safariPlaybackStop = false
   
   /**
-   * Returns whether playback was stopped for Safari compatibility
-   * @returns {boolean} True if playback was stopped for Safari
+   * Ensures AudioContext is properly initialized and resumed.
+   * This is particularly important for iOS browsers.
+   * @returns {Promise<boolean>} True if successfully resumed, false otherwise
    */
-  getIfSafariPlayback = () => { return this.#safariPlaybackStop }
-  
+  async ensureAudioContextResumed() {
+    try {
+      // Create context if it doesn't exist (shouldn't happen normally)
+      if (!this.#audioCtx) {
+        this.#audioCtx = new AudioContext();
+        console.log("Created new AudioContext");
+      }
+      
+      // Handle suspended state (common in iOS/Safari due to user interaction requirements)
+      if (this.#audioCtx.state === "suspended") {
+        console.log("Attempting to resume suspended AudioContext...");
+        
+        try {
+          // First, try the normal resume
+          await this.#audioCtx.resume();
+          
+          // iOS often needs an additional "kick" with a silent sound
+          // Create a short, silent sound
+          const kickNode = this.#audioCtx.createOscillator();
+          const gainNode = this.#audioCtx.createGain();
+          
+          // Set it to be nearly silent
+          gainNode.gain.value = 0.001;
+          
+          // Connect and play a brief tone
+          kickNode.connect(gainNode);
+          gainNode.connect(this.#audioCtx.destination);
+          kickNode.start(this.#audioCtx.currentTime);
+          kickNode.stop(this.#audioCtx.currentTime + 0.1);
+          
+          console.log("AudioContext resumed, with kick: state =", this.#audioCtx.state);
+        } catch (innerError) {
+          console.error("Failed during detailed resume process:", innerError);
+        }
+        
+        // Try once more if still suspended (some mobile browsers need multiple attempts)
+        if (this.#audioCtx.state === "suspended") {
+          console.log("Still suspended, trying one more resume");
+          await this.#audioCtx.resume();
+        }
+        
+        // Send wake message to the service worker if available
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            action: 'wakeAudio'
+          });
+        }
+      }
+      
+      console.log("Final AudioContext state:", this.#audioCtx.state);
+      return this.#audioCtx.state === "running";
+    } catch (error) {
+      console.error("Error resuming AudioContext:", error);
+      return false;
+    }
+  }
+
   /**
    * Stops playback specifically for Safari if currently playing
    * Used to handle Safari-specific audio context limitations
@@ -239,9 +295,10 @@ class Engine {
   /**
    * Resumes playback if it was stopped specifically for Safari
    */
-  safariOnlyResumeIfStopped() {
+  async safariOnlyResumeIfStopped() {
     // this.Log('safariOnlyResumeIfStopped', this.GLOBAL_SSC)
     if (this.#safariPlaybackStop) {
+      await this.ensureAudioContextResumed();
       this.DisplaySetters['STOP']('', 'CONT')
       this.#safariPlaybackStop = false
     } 
@@ -5575,54 +5632,65 @@ class Engine {
    * @private
    */
   #scheduler = () => {
-    // Schedule notes that need to play before the next interval
-    while (this.nextNoteTime < this.#audioCtx.currentTime + this.#scheduleAheadTime) {
-      // Move beat counter forward or backward depending on direction
-      !this.invert?this.#moveBeatRunner():this.#moveBeatRunnerBackward()
+    try {
+      // Ensure audio context is running
+      if (this.#audioCtx.state !== 'running') {
+        console.warn('AudioContext not running in scheduler, attempting to resume');
+        this.#audioCtx.resume().catch(err => console.error('Resume error in scheduler:', err));
+        
+        // Try again in 100ms if context is still not running
+        this.timerID = setTimeout(this.#scheduler, 100);
+        return;
+      }
 
-      /* Handle end of sequence when not in cycle mode */
-      if (this.#patternNumber===this.#playbackQueue.length-1
-        &&!this.#CYCLE&&this.#beatRunnerCounter===(!this.invert?this.BASE-1:this.firstBeat)) {
-        // Play the last note of the last pattern before stopping
+      // Schedule notes that need to play before the next interval
+      while (this.nextNoteTime < this.#audioCtx.currentTime + this.#scheduleAheadTime) {
+        // Move beat counter forward or backward depending on direction
+        !this.invert ? this.#moveBeatRunner() : this.#moveBeatRunnerBackward()
+
+        /* Handle end of sequence when not in cycle mode */
+        if (this.#patternNumber === this.#playbackQueue.length-1
+          && !this.#CYCLE && this.#beatRunnerCounter === (!this.invert ? this.BASE-1 : this.firstBeat)) {
+          // Play the last note of the last pattern before stopping
+          this.#scheduleNote(this.#beatRunnerCounter, this.nextNoteTime, this.flammedTime)
+          this.StateSetters['handleClickMk']('STOP')
+          return
+        }
+        
+        // Schedule the current note
         this.#scheduleNote(this.#beatRunnerCounter, this.nextNoteTime, this.flammedTime)
-        this.StateSetters['handleClickMk']('STOP')
-        return
+        
+        // Calculate time between beats based on tempo and grid
+        let secondsPerBeat = 60.0 / (this.#giveTempo() * this.#grid)
+        
+        /**
+         * Apply shuffle by adding time to even beats and subtracting from odd beats
+         * This creates a swing feel that works in any scale or base
+         */
+        secondsPerBeat = this.#beatRunnerCounter % 2 == 0 ?
+          secondsPerBeat + this.#shuffleFactor * secondsPerBeat :
+          secondsPerBeat - this.#shuffleFactor * secondsPerBeat
+
+        // Add beat duration to schedule next note
+        this.nextNoteTime += secondsPerBeat;
+
+        /**
+         * Calculate flam timing based on pattern settings
+         * Flam creates a grace note slightly before the main note
+         */
+        let FLAM = this.#memory[this.#getPatternMemoryLocation(this.#patternLocation)][14]
+
+        // 0.21 is a small correction factor that may need tuning
+        this.flammedTime = this.nextNoteTime - (FLAM + 0.21) * secondsPerBeat
       }
       
-      // Schedule the current note
-      this.#scheduleNote(this.#beatRunnerCounter, this.nextNoteTime, this.flammedTime)
-      
-      // Calculate time between beats based on tempo and grid
-      let secondsPerBeat = 60.0 / (this.#giveTempo()*this.#grid)
-
-      // this.Log('--------> grid:', this.#grid)
-      
-      /**
-       * Apply shuffle by adding time to even beats and subtracting from odd beats
-       * This creates a swing feel that works in any scale or base
-       */
-      secondsPerBeat = this.#beatRunnerCounter%2==0?
-        secondsPerBeat + this.#shuffleFactor*secondsPerBeat:
-        secondsPerBeat - this.#shuffleFactor*secondsPerBeat
-
-      // Add beat duration to schedule next note
-      this.nextNoteTime += secondsPerBeat;
-
-      /**
-       * Calculate flam timing based on pattern settings
-       * Flam creates a grace note slightly before the main note
-       */
-      let FLAM = this.#memory[this.#getPatternMemoryLocation(this.#patternLocation)][14]
-
-      // 0.21 is a small correction factor that may need tuning
-      this.flammedTime = this.nextNoteTime - (FLAM+0.21)*secondsPerBeat
-       
-      // this.Log('shuffleFactor:time:time added:', 
-      //   this.#shuffleFactor, secondsPerBeat, this.#shuffleFactor*secondsPerBeat)
+      // Schedule next call to this function
+      this.timerID = setTimeout(this.#scheduler, this.#lookahead)
+    } catch (err) {
+      console.error('Error in scheduler:', err);
+      // Try to recover by scheduling another attempt
+      this.timerID = setTimeout(this.#scheduler, this.#lookahead * 2);
     }
-    
-    // Schedule next call to this function
-    this.timerID = setTimeout(this.#scheduler, this.#lookahead)
   }
 
   /** Table of playback control functions */
@@ -5640,60 +5708,85 @@ class Engine {
 
     // Define START function - begins playback from current position
     this.#playbackTable['START'] = async () => {
-      clearTimeout(this.timerID)
-      this.stopBeatBlinking()
+      try {
+        clearTimeout(this.timerID)
+        this.stopBeatBlinking()
 
-      // Resume audio context if suspended
-      if (this.#audioCtx.state === "suspended") {
-        this.#audioCtx.resume();
+        // Resume audio context if suspended - using improved method
+        const resumed = await this.ensureAudioContextResumed();
+        
+        if (!resumed) {
+          console.warn("Could not resume AudioContext, trying again...");
+          // Try one more time with a slight delay
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await this.ensureAudioContextResumed();
+        }
+
+        // Initialize beat counter based on playback direction
+        this.#beatRunnerCounter = !this.invert ? this.firstBeat-1 : this.BASE
+
+        // Start scheduling from current time
+        this.nextNoteTime = this.#audioCtx.currentTime
+        this.#scheduler()
+        
+        // Save that we're in a playing state
+        this.#wasPlaying = true;
+        
+        console.log('START playback executed, AudioContext state:', this.#audioCtx.state);
+      } catch (err) {
+        console.error('Error in START playback:', err);
       }
-
-      // Initialize beat counter based on playback direction
-      this.#beatRunnerCounter = !this.invert?this.firstBeat-1:this.BASE
-
-      // Start scheduling from current time
-      this.nextNoteTime = this.#audioCtx.currentTime
-      this.#scheduler()
-
-      // this.Log('   \n>>>PLAYBACK>>>:', 'START:beatRunner:', this.#beatRunnerCounter)
     }
 
     // Define STOP function - halts playback
     this.#playbackTable['STOP'] = () => {
-      clearTimeout(this.timerID)
-      this.startBeatBlinking()
-      // this.Log(`  >>>PLAYBACK>>>:', 'STOP
-      //   beatRunnerCounter: ${this.#beatRunnerCounter}
-      //   BASE: ${this.BASE}
-      //   firstBeat: ${this.firstBeat}
-      // `)
+      try {
+        clearTimeout(this.timerID)
+        this.startBeatBlinking()
+        // Record that we're stopped
+        this.#wasPlaying = false;
+        console.log('STOP playback executed');
+      } catch (err) {
+        console.error('Error in STOP playback:', err);
+      }
     }
 
     // Define CONT function - continues playback from where it was stopped
     this.#playbackTable['CONT'] = async () => {
-      // this.Log('   >>>PLAYBACK>>>:', 'CONT')
-      this.stopBeatBlinking()
+      try {
+        this.stopBeatBlinking()
 
-      // Resume audio context if suspended
-      if (this.#audioCtx.state === "suspended") {
-        this.#audioCtx.resume();
+        // Resume audio context if suspended - using improved method
+        const resumed = await this.ensureAudioContextResumed();
+        
+        if (!resumed) {
+          console.warn("Could not resume AudioContext for CONT, trying again...");
+          // Try one more time with a slight delay
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await this.ensureAudioContextResumed();
+        }
+
+        // Handle case where machine was reloaded
+        if (!this.nextNoteTime) {
+          this.#beatRunnerCounter = !this.invert ? this.firstBeat-1 : this.BASE
+        }
+        
+        // Ensure beat counter is within valid range
+        if (this.#beatRunnerCounter < this.firstBeat || 
+          this.#beatRunnerCounter > this.BASE
+        ) { this.#beatRunnerCounter = !this.invert ? this.firstBeat-1 : this.BASE }
+
+        // Start scheduling from current time
+        this.nextNoteTime = this.#audioCtx.currentTime
+        this.#scheduler()
+        
+        // Save that we're in a playing state
+        this.#wasPlaying = true;
+        
+        console.log('CONT playback executed, AudioContext state:', this.#audioCtx.state);
+      } catch (err) {
+        console.error('Error in CONT playback:', err);
       }
-
-      // Handle case where machine was reloaded
-      if (!this.nextNoteTime) {
-        this.#beatRunnerCounter = !this.invert?this.firstBeat-1:this.BASE
-      }
-      
-      // Ensure beat counter is within valid range
-      if (this.#beatRunnerCounter < this.firstBeat || 
-        this.#beatRunnerCounter > this.BASE
-      ) { this.#beatRunnerCounter = !this.invert?this.firstBeat-1:this.BASE }
-
-      // Start scheduling from current time
-      this.nextNoteTime = this.#audioCtx.currentTime
-      this.#scheduler()
-
-      // this.Log('   >>>PLAYBACK>>>:', 'STOP')
     }
   }
 
@@ -6447,6 +6540,58 @@ class Engine {
       // Small delay necessary for older browsers
       this.#loadFactoryBanks()
     }, 125)
+  }
+
+  #wasPlaying = false
+  
+  /**
+   * Handle when tab becomes hidden
+   * This saves the current playback state and manages the audio context
+   */
+  async handleVisibilityHidden() {
+    // Record whether we were playing when the tab was hidden
+    this.#wasPlaying = this.GLOBAL_SSC !== 'STOP';
+    
+    // If we're currently playing, stop playback but remember state
+    if (this.#wasPlaying) {
+      // Stop the scheduled sounds
+      clearTimeout(this.timerID);
+      
+      // Suspend audio context to save resources
+      if (this.#audioCtx && this.#audioCtx.state === 'running') {
+        try {
+          await this.#audioCtx.suspend();
+          console.log('Audio context suspended when tab hidden');
+        } catch (err) {
+          console.error('Failed to suspend audio context:', err);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Handle when tab becomes visible again
+   * This attempts to restore the playback state and ensures audio context is running
+   */
+  async handleVisibilityVisible() {
+    try {
+      // Always try to resume audio context regardless of previous state
+      if (this.#audioCtx && this.#audioCtx.state !== 'running') {
+        await this.ensureAudioContextResumed();
+      }
+      
+      // If we were playing when the tab was hidden, resume playback
+      if (this.#wasPlaying) {
+        // Small delay to ensure audio context is fully resumed
+        setTimeout(() => {
+          // Restart playback using the CONT function
+          this.DisplaySetters['STOP']('', 'CONT');
+          console.log('Playback resumed after tab becomes visible');
+        }, 100);
+      }
+    } catch (err) {
+      console.error('Error resuming after visibility change:', err);
+    }
   }
 }
 
