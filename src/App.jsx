@@ -3444,7 +3444,7 @@ function StatusBar () {
   />
 
   {/* Folder for main keys control variable */}
-  <Folder id={'sbGLCV'} info={<>MAIN KEYS:&nbsp;<DControlVariable/></>} width={260}
+  <Folder id={'sbGLCV'} info={<>MAIN KEYS:&nbsp;<DControlVariable/></>} width={300}
   transform='none'
   />
 
@@ -3739,6 +3739,35 @@ function NameBar () {
  */
 function TR909() {
   engine = initiateEngine(debug)
+  
+  useEffect(() => {
+    // Handle visibility change to fix iOS rendering artifacts
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Force repaint by temporarily adding and removing a class
+        document.body.style.display = 'none';
+        // Trigger browser reflow
+        void document.body.offsetHeight; 
+        document.body.style.display = '';
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also handle the page becoming active again via other means
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        // Page was restored from the bfcache
+        handleVisibilityChange();
+      }
+    });
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handleVisibilityChange);
+    };
+  }, []);
+  
   return (
   <L1>
       <L3>
