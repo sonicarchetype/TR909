@@ -3676,6 +3676,9 @@ function L1 ({children}) {
  */
 function Tooltip({ payload=null, id, width=null, height=null, position='null'}) {
   const style = width && height && {width: width, height: height, position: position}
+  if(payload && typeof payload === 'string') {
+    payload = payload.length>16?payload.slice(0, 16)+'...':payload
+  }
   return (
     <div 
       style={style}
