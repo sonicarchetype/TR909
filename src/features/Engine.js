@@ -2200,10 +2200,10 @@ class Engine {
     if (this.#GLCV !== 'INST SELECT') {
       
       // Select bank with Alt key in bank table mode
-      if (this.isBankTable && this.isAltKey) {
+      if (this.isBankTable && this.isAltKey()) {
         const bankId = elementId>2?'UBa'+(elementId/2-2):'FBa'+elementId/2
         document.getElementById(bankId).click()
-        this.isAltKey = false
+        this.#altKey = false
         return
       }
 
@@ -6062,7 +6062,7 @@ class Engine {
 
           break 
         case 'Digit1':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(0)
           break 
@@ -6071,7 +6071,7 @@ class Engine {
           this.handleClickMk(1)
           break 
         case 'Digit2':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(2)
           break
@@ -6080,7 +6080,7 @@ class Engine {
           this.handleClickMk(3)
           break
         case 'Digit3':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(4)
           break 
@@ -6089,7 +6089,7 @@ class Engine {
           this.handleClickMk(5)
           break 
         case 'Digit4':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(6)
           break 
@@ -6098,7 +6098,7 @@ class Engine {
           this.handleClickMk(7)
           break
         case 'Digit5':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(8)
           break 
@@ -6107,7 +6107,7 @@ class Engine {
           this.handleClickMk(9)
           break
         case 'Digit6':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(10)
           break
@@ -6116,7 +6116,7 @@ class Engine {
           this.handleClickMk(11)
           break
         case 'Digit7':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(12)
           break 
@@ -6125,7 +6125,7 @@ class Engine {
           this.handleClickMk(13)
           break
         case 'Digit8':
-          this.isAltKey = e.altKey
+          this.#altKey = e.altKey
           e.preventDefault();
           this.handleClickMk(14)
           break 
