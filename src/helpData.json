@@ -1,5 +1,5 @@
 {
-  "mk": "Main controls for banks, patterns & beats, shuffle and flam. White mark below: current measure; above: insertion point. With SHIFT: Write beats and accents (intense red).",
+  "mk": "Main keys for all actions with bottom-left action indicator. White mark below: current measure; above: insertion point. With SHIFT: Write beats and accents (intense red).",
   "START": "Begin playback from measure start. For beat-specific start, use main keys in PLAY BEAT mode. Key Enter.",
   "STOP": "Stop playback immediately. Press again to continue. Key Space.",
   "CE-TA": "With SHIFT: tap to add total accent. Adjust strength with Total Accent rotary.",
@@ -80,7 +80,7 @@
   "I0M": "Mute/unmute Cymbal. Key L.",
   "I0S": "Solo/unsolo Cymbal. ALT + L.",
 
-  "tempo_wheel": "Set tempo (37-290 BPM). Locked to prevent accidental changes. Use tempo led in the mid-left to unlock.",
+  "tempo_wheel": "Set tempo (37-290 BPM). Locked to prevent accidental changes. Use tempo led in the mid-right to unlock.",
   "volume_wheel": "Set master volume. Higher values emulate 300B tube distortion.",
 
   "T1": "Select memory track. With SHIFT: save to preset.",
