@@ -2,7 +2,8 @@
   "name": "TR-909 Drum Machine",
   "short_name": "TR-909",
   "description": "TR-909 Drum Machine Simulator",
-  "start_url": "/",
+  "version": "1.0.0",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
@@ -23,5 +24,8 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "cache_strategy": "network-first",
+  "offline_page": "/index.html",
+  "update_via_cache": "none"
 } 
