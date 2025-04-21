@@ -29,7 +29,7 @@
   "COPY": "With SHIFT: copy banks/presets/measures. Select destination with main keys.",
   "INS/UNDO": "With SHIFT: insert buffer. With ALT: undo last action.",
   "DEL": "Delete measures or slices in PLAY mode.",
-  "SAVE": "Save bank (selected in cyan) or preset to disk.",
+  "SAVE": "Save bank (selected in cyan) or preset to disk. Frequent saving your work is good practice.",
   "RECALL": "Restore bank or preset to initial state.",
   "LOAD": "Load bank or preset from disk.",
   
