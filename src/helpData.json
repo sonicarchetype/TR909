@@ -24,7 +24,7 @@
   "EXT": "Legacy feature (not implemented).",
   "CG": "Cycle measure. With SHIFT: add quarter note guide sound. Key G.",
   "BACK-TAP": "Go to previous measure. With SHIFT: enter TAP mode. Key < or comma.",
-  "TEMPO-STEP": "Activate Tempo wheel. With SHIFT: enter STEP mode. Key M",
+  "TEMPO-STEP": "Unlock Tempo wheel. With SHIFT: enter STEP mode. Key M",
 
   "COPY": "With SHIFT: copy banks/presets/measures. Select destination with main keys.",
   "INS/UNDO": "With SHIFT: insert buffer. With ALT: undo last action.",
@@ -80,7 +80,7 @@
   "I0M": "Mute/unmute Cymbal. Key L.",
   "I0S": "Solo/unsolo Cymbal. ALT + L.",
 
-  "tempo_wheel": "Set tempo (37-290 BPM).",
+  "tempo_wheel": "Set tempo (37-290 BPM). Locked to prevent accidental changes. Use tempo led in the mid-left to unlock.",
   "volume_wheel": "Set master volume. Higher values emulate 300B tube distortion.",
 
   "T1": "Select memory track. With SHIFT: save to preset.",

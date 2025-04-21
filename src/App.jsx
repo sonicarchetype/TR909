@@ -3400,7 +3400,7 @@ function StatusBar () {
    */
   function DHelp() {
     // State to track whether help is currently enabled or not
-    const [help, setHelp] = useState(false);
+    const [help, setHelp] = useState(true);
 
     // Function to handle click events on the help button
     const onClick = () => {

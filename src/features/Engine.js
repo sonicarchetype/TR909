@@ -6496,7 +6496,7 @@ class Engine {
    * Whether the help menu is currently visible
    * @type {boolean}
    */
-  HELP = false
+  HELP = true
   
   /**
    * Engine constructor
