@@ -1727,15 +1727,47 @@ function RotaryWheel({
   }, [elementId, rootDeg, maxDegree, dragSpeed, triggerHapticFeedback])
 
   /**
-   * Handles touch drag events for iOS devices
-   * @param {TouchEvent} e - The touch event
+   * Resets the rotary control to its default value on double click
    */
-  const handleDragIOS = useCallback((e) => {
+  const handleDoubleClick = useCallback(() => {
+    if (!handleINSTOnCondition(elementId)) return
+    setRootDeg(getDefaultForRotaries(elementId))
+    engine.setLastActive(elementId)
+    triggerHapticFeedback()
+  }, [elementId, triggerHapticFeedback])
+
+  // State to track if the wheel is being dragged
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Handle global mouse move events
+  const handleGlobalMouseMove = useCallback((e) => {
+    if (!mouseDown || !handleINSTOnCondition(elementId)) return
+    
+    const currentY = e.clientY
+    const delta = currentY - firstY
+    
+    if (delta !== 0) {
+      // Use the original dragSpeed parameter directly for faster response
+      if (delta > 0) {
+        if (rootDeg >= maxDegree) return
+        setRootDeg(prev => Math.min(prev + dragSpeed, maxDegree))
+        triggerHapticFeedback()
+      } else {
+        if (rootDeg <= -maxDegree) return
+        setRootDeg(prev => Math.max(prev - dragSpeed, -maxDegree))
+        triggerHapticFeedback()
+      }
+      setFirstY(currentY)
+      engine.setLastActive(elementId)
+    }
+  }, [elementId, rootDeg, maxDegree, dragSpeed, triggerHapticFeedback])
+
+  // Handle global touch move events
+  const handleGlobalTouchMove = useCallback((e) => {
     e.preventDefault(); // Prevent scrolling
     if (!mouseDown || !handleINSTOnCondition(elementId)) return
-    setIsActive(true)
     
-    const dragSpeedIOS = elementId === 'tempo_wheel' ? 2 : 4
+    const dragSpeedIOS = elementId === 'tempo_wheel' ? 1 : elementId === 'volume_wheel' ? 2 : 4
     const touch = e.touches[0]
     const currentY = touch.clientY
     const delta = currentY - firstY
@@ -1756,27 +1788,61 @@ function RotaryWheel({
     }
   }, [elementId, rootDeg, maxDegree, triggerHapticFeedback])
 
-  /**
-   * Resets the rotary control to its default value on double click
-   */
-  const handleDoubleClick = useCallback(() => {
-    if (!handleINSTOnCondition(elementId)) return
-    setRootDeg(getDefaultForRotaries(elementId))
-    engine.setLastActive(elementId)
-    triggerHapticFeedback()
-  }, [elementId, triggerHapticFeedback])
+  // Handle global mouse up events
+  const handleGlobalMouseUp = useCallback(() => {
+    setMouseDown(false)
+    setIsActive(false)
+    setIsDragging(false)
+  }, [])
 
-  // Handle mouse down/up events
+  // Handle global touch end events
+  const handleGlobalTouchEnd = useCallback(() => {
+    setMouseDown(false)
+    setIsActive(false)
+    setIsDragging(false)
+  }, [])
+
+  // Setup and cleanup global event listeners when dragging state changes
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove)
+      document.addEventListener('mouseup', handleGlobalMouseUp)
+      document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false })
+      document.addEventListener('touchend', handleGlobalTouchEnd)
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove)
+      document.removeEventListener('mouseup', handleGlobalMouseUp)
+      document.removeEventListener('touchmove', handleGlobalTouchMove)
+      document.removeEventListener('touchend', handleGlobalTouchEnd)
+    }
+  }, [isDragging, handleGlobalMouseMove, handleGlobalMouseUp, handleGlobalTouchMove, handleGlobalTouchEnd])
+
+  /**
+   * Handles mouse down/up events
+   * @param {MouseEvent} e - The mouse event
+   */
   const handleMouseDown = useCallback((e) => {
     e.preventDefault(); // Ensure no unwanted behavior
     setMouseDown(true)
     setIsActive(true)
+    setIsDragging(true)
     setFirstY(e.clientY || (e.touches && e.touches[0].clientY) || 0)
+  }, [])
+
+  const handleTouchStart = useCallback((e) => {
+    e.preventDefault(); // Ensure no unwanted behavior
+    setMouseDown(true)
+    setIsActive(true)
+    setIsDragging(true)
+    setFirstY(e.touches[0].clientY || 0)
   }, [])
 
   const handleMouseUp = useCallback(() => {
     setMouseDown(false)
     setIsActive(false)
+    setIsDragging(false)
   }, [])
 
   // Calculate dynamic height based on elementId
@@ -1806,13 +1872,10 @@ function RotaryWheel({
   onDrag={handleDrag}
   onWheel={handleRotation}
   onDoubleClick={handleDoubleClick}
-  onMouseMove={handleDrag}
   onMouseDown={handleMouseDown}
   onMouseUp={handleMouseUp}
-  onMouseLeave={handleMouseUp}
-  onTouchStart={(e) => { handleMouseDown(e); }}
+  onTouchStart={handleTouchStart}
   onTouchEnd={handleMouseUp}
-  onTouchMove={handleDragIOS}
   onKeyDown={onKeyDown}
   style={{
     width: '65%',
@@ -2034,7 +2097,7 @@ function MidSection() {
               elementId={'tempo_wheel'}
               width={'116px'} height={'86%'}
               srcSVG={OrangePointer}
-              dragSpeed={2}
+              dragSpeed={1}
             />
           </div>
       </div> 
@@ -2091,7 +2154,7 @@ function MidSection() {
             elementId={'volume_wheel'}
             width={'114px'} height={'86%'}
             srcSVG={OrangePointer}
-            dragSpeed={3}
+            dragSpeed={2}
           />
 
         </div>
@@ -2123,7 +2186,7 @@ function SmallRWEnclosed ({elementId}) {
       width={'60px'} height={'100%'}
       srcSVG={OrangePointerSmall}
       altSVG={BluePointerSmall}
-      dragSpeed={8}
+      dragSpeed={3}
     />
   </div>
 }
