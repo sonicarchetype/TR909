@@ -2263,7 +2263,7 @@ class Engine {
     if (this.#GLCV !== 'INST SELECT') {
       
       // Select bank with Alt key in bank table mode
-      if (this.isBankTable && this.isAltKey()) {
+      if (this.isBankTable && this.isAltKey() && !this.#LAST_STEP && !this.#shuffleFlam) {
         const bankId = elementId>2?'UBa'+(elementId/2-2):'FBa'+elementId/2
         document.getElementById(bankId).click()
         this.#altKey = false
