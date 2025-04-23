@@ -1,6 +1,6 @@
 # TR-909 RHYTHM COMPOSER (Web Edition)
 
-> **A labor of love for the classic Roland TR-909.  
+> **A labor of love for the classic TR-909.  
 > Now in your browser, with modern power and vintage soul.**
 
 ---
@@ -25,7 +25,7 @@
 
 ## Foreword
 
-The Roland TR-909 is more than a drum machine—it's a legend that shaped the sound of electronic music for decades. This project is a faithful, software-based reimagining of the 909, designed for musicians, producers, and tinkerers who crave that iconic workflow and sound, but with the convenience and flexibility of the web.
+The TR-909 is more than a drum machine—it's a legend that shaped the sound of electronic music for decades. This project is a faithful, software-based reimagining of the 909, designed for musicians, producers, and tinkerers who crave that iconic workflow and sound, but with the convenience and flexibility of the web.
 
 **Why this project?**  
 We love the 909. We wanted to capture its unique feel, quirks, and immediacy—while adding new features, modern UI, and the ability to run anywhere. This is not just a clone; it's a tribute, an upgrade, and a playground for rhythm lovers.
@@ -44,6 +44,7 @@ We love the 909. We wanted to capture its unique feel, quirks, and immediacy—w
 - 🧩 **Extensible**: Designed for future features like MIDI, Ableton Link, and more.
 - 🛠️ **Open Source**: Hackable, inspectable, and ready for your contributions.
 - 🎹 **Preset Library**: Comes with a collection of ready-to-use patterns and banks.
+- 🔍 **SEO Optimized**: Built-in metadata management for better discoverability on search engines and social media.
 
 ---
 
@@ -77,6 +78,7 @@ Open `http_://192.168.xxx.xxx:16 `in your browser. (You should probably change t
 - **React UI**: Renders the drum machine interface, controls, and displays. Handles user interaction and communicates with the Engine via a global singleton.
 - **Engine**: A large, stateful singleton class that manages pattern and bank memory, audio sequencing, playback, UI state, persistence, and business logic for all controls.
 - **Service Worker**: Handles caching of sound data and app assets for offline use, with custom update and cache invalidation logic.
+- **SEO Component**: Manages all metadata for search engines and social sharing without external dependencies, dynamically updating meta tags based on routes.
 
 **Data Flow:**
 - UI events call methods on the `engine` singleton.

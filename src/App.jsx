@@ -11,6 +11,7 @@ import {
 import './App.css';
 import githubLogo from './assets/github-mark-white.svg';
 import helpData from '../src/helpData.json';
+import SEO from './components/SEO';
 
 /**
  * Runs the unit in the debug mode where nearly all component blocks are differed by color.
@@ -3293,9 +3294,6 @@ function DCredits() {
   const credits = [
     { name: "VINCENT RIEMER", link: "https://vincentriemer.com/" },
     { name: "REACT", link: "https://reactjs.org" },
-    { name: "ABLETON", link: "https://ableton.com" },
-    { name: "ROLAND", link: "https://roland.com" },
-    { name: "CLOUDFLARE", link: "https://cloudflare.com" },
     { name: "DOCTORMIX", link: "https://youtube.com/@doctormix" },
     { name: "JASON BAKER", link: "mailto:bake0028@gold.tc.umn.edu" },
   ];
@@ -3835,7 +3833,13 @@ function TR909() {
   }, []);
   
   return (
-  <L1>
+  <>
+    <SEO 
+      title="TR-909 Rhythm Composer (Web Edition)"
+      description="Classic TR-909 drum machine emulation for the modern web with authentic sounds and workflow."
+      route="/"
+    />
+    <L1>
       <L3>
         <InfoBar height={45}/>
         <Pad params={['100%', '20px', 'grey', '0.9']}/> 
@@ -3853,7 +3857,8 @@ function TR909() {
         <HueBar />
       </L3>
       {/* <Footer /> */}
-  </L1> 
+    </L1>
+  </>
   )
 }
 
@@ -3865,7 +3870,14 @@ function Manual() {
   engine = null
   document.body.style.backgroundColor = localStorage.getItem('currentBodyColor') || 'black'
   return (
-    <div className='monospace' style={{ fontSize: '234%', color: 'white', padding: '80px',  }}>{helpData['sbManual']}<br/><br/><TheGitHubCat sizeFactor={2}/></div>
+    <>
+      <SEO 
+        title="TR-909 Manual - Rhythm Composer (Web Edition)"
+        description="User guide and documentation for the TR-909 web drum machine emulation."
+        route="/manual"
+      />
+      <div className='monospace' style={{ fontSize: '234%', color: 'white', padding: '80px',  }}>{helpData['sbManual']}<br/><br/><TheGitHubCat sizeFactor={2}/></div>
+    </>
   )
 }
 

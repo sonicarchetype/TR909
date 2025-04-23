@@ -227,12 +227,12 @@ class Engine {
       // Create context if it doesn't exist (shouldn't happen normally)
       if (!this.#audioCtx) {
         this.#audioCtx = new AudioContext();
-        console.log("Created new AudioContext");
+        // console.log("Created new AudioContext");
       }
       
       // Handle suspended state (common in iOS/Safari due to user interaction requirements)
       if (this.#audioCtx.state === "suspended") {
-        console.log("Attempting to resume suspended AudioContext...");
+        // console.log("Attempting to resume suspended AudioContext...");
         
         try {
           // First, try the normal resume
@@ -252,14 +252,14 @@ class Engine {
           kickNode.start(this.#audioCtx.currentTime);
           kickNode.stop(this.#audioCtx.currentTime + 0.1);
           
-          console.log("AudioContext resumed, with kick: state =", this.#audioCtx.state);
+          // console.log("AudioContext resumed, with kick: state =", this.#audioCtx.state);
         } catch (innerError) {
           console.error("Failed during detailed resume process:", innerError);
         }
         
         // Try once more if still suspended (some mobile browsers need multiple attempts)
         if (this.#audioCtx.state === "suspended") {
-          console.log("Still suspended, trying one more resume");
+          // console.log("Still suspended, trying one more resume");
           await this.#audioCtx.resume();
         }
         
@@ -271,7 +271,7 @@ class Engine {
         }
       }
       
-      console.log("Final AudioContext state:", this.#audioCtx.state);
+      // console.log("Final AudioContext state:", this.#audioCtx.state);
       return this.#audioCtx.state === "running";
     } catch (error) {
       console.error("Error resuming AudioContext:", error);
@@ -292,7 +292,7 @@ class Engine {
      * Mobile browsers remove the audio context anyway.
      */
     if (!this.isMobile && !/Chrome/.test(navigator.userAgent) && this.GLOBAL_SSC !== 'STOP') {
-      console.log('stopPlayback', navigator.userAgent)
+      // console.log('stopPlayback', navigator.userAgent)
       this.DisplaySetters['STOP']('', 'STOP')
       this.#playbackStopped = true
     }
@@ -5642,7 +5642,7 @@ class Engine {
       // Ensure audio context is running
       if (this.#audioCtx.state !== 'running') {
         // The warning is expected, it's not an error.
-        console.warn('AudioContext not running in scheduler, attempting to resume');
+        // console.warn('AudioContext not running in scheduler, attempting to resume');
         this.#audioCtx.resume().catch(err => console.error('Resume error in scheduler:', err));
         
         // Try again in 100ms if context is still not running
@@ -5729,7 +5729,7 @@ class Engine {
         this.nextNoteTime = this.#audioCtx.currentTime
         this.#scheduler()
         
-        console.log('START playback executed, AudioContext state:', this.#audioCtx.state);
+        // console.log('START playback executed, AudioContext state:', this.#audioCtx.state);
       } catch (err) {
         console.error('Error in START playback:', err);
       }
@@ -5742,7 +5742,7 @@ class Engine {
         this.startBeatBlinking()
         this.#audioCtx.suspend()
 
-        console.log('STOP playback executed');
+        // console.log('STOP playback executed');
       } catch (err) {
         console.error('Error in STOP playback:', err);
       }
@@ -5770,7 +5770,7 @@ class Engine {
         this.nextNoteTime = this.#audioCtx.currentTime
         this.#scheduler()
         
-        console.log('CONT playback executed, AudioContext state:', this.#audioCtx.state);
+        // console.log('CONT playback executed, AudioContext state:', this.#audioCtx.state); 
       } catch (err) {
         console.error('Error in CONT playback:', err);
       }

@@ -1,12 +1,12 @@
 {
-  "name": "TR-909 Drum Machine",
+  "name": "TR-909 Rhythm Composer",
   "short_name": "TR-909",
-  "description": "TR-909 Drum Machine Simulator",
-  "version": "1.0.19",
+  "description": "Classic TR-909 drum machine emulation for the modern web with authentic sounds and workflow",
+  "version": "1.0.20",
   "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#000000",
+  "theme_color": "#d35400",
   "icons": [
     {
       "src": "icons/pwa-192x192.png",
@@ -27,5 +27,18 @@
   ],
   "cache_strategy": "network-first",
   "offline_page": "/index.html",
-  "update_via_cache": "none"
+  "update_via_cache": "none",
+  "orientation": "any",
+  "categories": ["music", "entertainment", "productivity"],
+  "screenshots": [
+    {
+      "src": "SA-TR909-UI.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "platform": "wide",
+      "label": "TR-909 Rhythm Composer Interface"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 } 
