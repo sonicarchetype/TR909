@@ -3938,6 +3938,17 @@ function App() {
   // Save state when page visibility changes
   document.onvisibilitychange = function(event) {
     engine && engine.writeLocalStorage()
+    console.log('visibilitychange', navigator.userAgent)
+
+    if (document.visibilityState === 'hidden') {
+      engine.stopPlayback()
+      
+    } else {
+      if (engine) {
+        engine.resumePlayback()
+        
+      }
+    }
   }
 
   // Add iOS audio context initialization helper
@@ -3973,23 +3984,6 @@ function App() {
       };
     }
   }, [engine]);
-
-  // Handle browser-specific audio behavior when tab visibility changes
-  document.addEventListener("visibilitychange", async () => {
-    if (document.hidden) {
-      // When tab is hidden, save state and suspend audio if necessary
-      engine && engine.writeLocalStorage();
-      
-      // Let Engine know the tab is hidden so it can properly handle audio
-      engine && await engine.handleVisibilityHidden();
-    } else {
-      // When tab becomes visible again, ensure audio context is ready
-      if (engine) {
-        // Force audio context to resume when returning to the tab
-        await engine.handleVisibilityVisible();
-      }
-    }
-  })
   
   return (
     <BrowserRouter>

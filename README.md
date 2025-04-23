@@ -5,6 +5,24 @@
 
 ---
 
+## Table of Contents
+
+- [Foreword](#foreword)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Build for Production](#build-for-production)
+- [Screenshots](#screenshots)
+- [High-Level Architecture](#high-level-architecture)
+- [Engine API Overview](#engine-api-overview)
+- [Design Paradigm: Data-Oriented Design (DOD) in JS/React](#design-paradigm-data-oriented-design-dod-in-jsreact)
+- [Service Worker](#service-worker)
+- [Roadmap](#roadmap)
+- [Contribution Notes](#contribution-notes)
+- [License](#license)
+- [Afterword for React purists](#afterword-for-react-purists)
+
+---
+
 ## Foreword
 
 The Roland TR-909 is more than a drum machine—it's a legend that shaped the sound of electronic music for decades. This project is a faithful, software-based reimagining of the 909, designed for musicians, producers, and tinkerers who crave that iconic workflow and sound, but with the convenience and flexibility of the web.
@@ -35,16 +53,14 @@ We love the 909. We wanted to capture its unique feel, quirks, and immediacy—w
 git clone https://github.com/yourusername/TR909.git
 cd TR909
 npm install
-npm run dev
-```
-
-## Build for Production
-
-```bash
 npm run build
+npm run preview -- --host
 ```
+**ALWAYS build before previewing to avoid problems with the audio context!**
 
-Open [http://localhost:16](http://localhost:16) in your browser. (You should probably change the port in `vite.config.js` to something that fits your network environment.)
+Open `http_://192.168.xxx.xxx:16 `in your browser. (You should probably change the port in `vite.config.js` to something that fits your network environment. Using localhost:16 leads to caching issues)
+
+`npm run dev` is also OK, but we prefer the actual build.
 
 ---
 
@@ -98,10 +114,16 @@ The `Engine` class is the core of the application. It is responsible for:
 
 ## Service Worker
 
-- Caches large sound data and app assets for offline use.
-- Uses custom strategies for sound file caching, update checks, and cache invalidation.
-- Handles fetch events for sound data, app assets, and versioning.
-- Ensures the app works offline and loads quickly.
+- No update notifications, still works offline, retains the sound core.
+- All requests go straight to the network.
+- The app forcibly unregisters any old service workers and disables update prompts.
+
+The `manifest.json` is set up for PWA support (icons, theme, etc.), but the service worker does not provide the support or caching at this time.
+
+In Short: The service worker is present but intentionally neutered. PWA? Maybe yes, maybe no. 
+
+## Versioning
+Version tag is updated upon merging into `main` via a script counting commits on the main branch as +=1; version is not always reflected in commit messages; version format is a list [app, feature, commit], roughly [major, minor, patch].
 
 ---
 
@@ -126,8 +148,8 @@ The `Engine` class is the core of the application. It is responsible for:
 ## Contribution Notes
 
 - **Where to Start:**  
-  - UI components (React) are a good entry point for new contributors if you have spotted a bug or know how to improve the UI.
-  - Engine internals, state management, and service worker require experience.
+  - UI components (React) are a good entry point for new contributors if you have spotted a bug or know how to improve the UI for even better performance and user experience.
+  - Engine internals and state management require some system-programming experience.
   - Check the [Roadmap](#roadmap) for planned features.
 - **Strict no dependencies policy:**
   - This is all and let's keep it that way.
@@ -144,8 +166,7 @@ The `Engine` class is the core of the application. It is responsible for:
   }
 }  
 ```
-- **About tests and adding a testing framework:**  
-  - Please don't. Your time is valuable as our's. Test by using TR-909.
+
 - **Tips:**  
   - Read through `src/App.jsx` and `src/features/Engine.js` to understand the data flow.
   - Real-time debugging the Engine is hard. Use the console. Reload to reset the Engine state.
@@ -161,3 +182,28 @@ MIT
 ---
 
 **Enjoy making rhythms!**  
+
+---
+
+## Afterword for React purists
+### or *What the heck is with the code?* and *Where's Redux and dependencies?*
+
+React is fantastic, we can say only this. React is and should be open for many practices, which only add to its strength. The same we think about Vite, npm & Node.js, brilliant V8 and SpiderMonkey, and all the rest making JS community thrive. 
+
+TR909 deliberately 
+- avoids Redux and React best practices for performance reasons
+- implements a custom Data-Oriented Design pattern
+- uses a singleton with state setter registry rather than React's state flow
+
+For the reason of
+- Complete recreated UI of a classic drum machine with intricate behaviors
+- Extended features like pattern memory, bank organization, and preset loading
+- Comprehensive state management across many components
+- Large-scale coordination between UI and audio engine to have only necessary rendering on the leaf nodes
+
+---
+
+**If you want a highy-capable, deeply custom, and technical project, this is an example of how a performance-oriented code can be written in React.**
+
+
+**Like challenges? Please, do contribute!**

@@ -214,8 +214,8 @@ class Engine {
   /** Placeholder for instrument setting function */
   setInst = () => { }
 
-  /** Flag to track if playback was stopped specifically for Safari */
-  #safariPlaybackStop = false
+  /** Flag to track if playback was stopped specifically */
+  #playbackStopped = false
   
   /**
    * Ensures AudioContext is properly initialized and resumed.
@@ -279,28 +279,34 @@ class Engine {
     }
   }
 
+  
   /**
-   * Stops playback specifically for Safari if currently playing
-   * Used to handle Safari-specific audio context limitations
+   * Stops playback of the drum machine
+   * Only executes on non-mobile, non-Chrome browsers when not already stopped. 
+   * Called from App.jsx when the tab is hidden.
    */
-  async safariOnlyStopIfPlayed() {
-    // this.Log('safariOnlyStopIfPlayed', this.GLOBAL_SSC)
-    if (this.GLOBAL_SSC !== 'STOP') {
+  stopPlayback() {
+    /**
+     * To avoid glitches, when the tab or window is hidden we leave the continuous playback ON for Desktop Chrome only. 
+     * Mozzilla is untested well.
+     * Mobile browsers remove the audio context anyway.
+     */
+    if (!this.isMobile && !/Chrome/.test(navigator.userAgent) && this.GLOBAL_SSC !== 'STOP') {
+      console.log('stopPlayback', navigator.userAgent)
       this.DisplaySetters['STOP']('', 'STOP')
-      this.#safariPlaybackStop = true
-      this.#audioCtx.suspend()
+      this.#playbackStopped = true
     }
   }
   
   /**
-   * Resumes playback if it was stopped specifically for Safari
+   * Resumes playback from where it was stopped
+   * Only executes if playback was previously stopped.
+   * Called from App.jsx when the tab is shown again.
    */
-  async safariOnlyResumeIfStopped() {
-    // this.Log('safariOnlyResumeIfStopped', this.GLOBAL_SSC)
-    if (this.#safariPlaybackStop) {
-      await this.ensureAudioContextResumed();
+  resumePlayback() {
+    if (this.#playbackStopped) {
       this.DisplaySetters['STOP']('', 'CONT')
-      this.#safariPlaybackStop = false
+      this.#playbackStopped = false
     } 
   }
 
@@ -5635,6 +5641,7 @@ class Engine {
     try {
       // Ensure audio context is running
       if (this.#audioCtx.state !== 'running') {
+        // The warning is expected, it's not an error.
         console.warn('AudioContext not running in scheduler, attempting to resume');
         this.#audioCtx.resume().catch(err => console.error('Resume error in scheduler:', err));
         
@@ -5707,20 +5714,13 @@ class Engine {
     this.StateSetters['QTa0'] = () => {}
 
     // Define START function - begins playback from current position
-    this.#playbackTable['START'] = async () => {
+    this.#playbackTable['START'] = () => {
       try {
         clearTimeout(this.timerID)
         this.stopBeatBlinking()
 
-        // Resume audio context if suspended - using improved method
-        const resumed = await this.ensureAudioContextResumed();
-        
-        if (!resumed) {
-          console.warn("Could not resume AudioContext, trying again...");
-          // Try one more time with a slight delay
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await this.ensureAudioContextResumed();
-        }
+        this.#audioCtx.suspend()
+        this.#audioCtx.resume()
 
         // Initialize beat counter based on playback direction
         this.#beatRunnerCounter = !this.invert ? this.firstBeat-1 : this.BASE
@@ -5728,9 +5728,6 @@ class Engine {
         // Start scheduling from current time
         this.nextNoteTime = this.#audioCtx.currentTime
         this.#scheduler()
-        
-        // Save that we're in a playing state
-        this.#wasPlaying = true;
         
         console.log('START playback executed, AudioContext state:', this.#audioCtx.state);
       } catch (err) {
@@ -5743,8 +5740,8 @@ class Engine {
       try {
         clearTimeout(this.timerID)
         this.startBeatBlinking()
-        // Record that we're stopped
-        this.#wasPlaying = false;
+        this.#audioCtx.suspend()
+
         console.log('STOP playback executed');
       } catch (err) {
         console.error('Error in STOP playback:', err);
@@ -5752,19 +5749,12 @@ class Engine {
     }
 
     // Define CONT function - continues playback from where it was stopped
-    this.#playbackTable['CONT'] = async () => {
+    this.#playbackTable['CONT'] = () => {
       try {
         this.stopBeatBlinking()
 
-        // Resume audio context if suspended - using improved method
-        const resumed = await this.ensureAudioContextResumed();
-        
-        if (!resumed) {
-          console.warn("Could not resume AudioContext for CONT, trying again...");
-          // Try one more time with a slight delay
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await this.ensureAudioContextResumed();
-        }
+        this.#audioCtx.suspend()
+        this.#audioCtx.resume()
 
         // Handle case where machine was reloaded
         if (!this.nextNoteTime) {
@@ -5779,9 +5769,6 @@ class Engine {
         // Start scheduling from current time
         this.nextNoteTime = this.#audioCtx.currentTime
         this.#scheduler()
-        
-        // Save that we're in a playing state
-        this.#wasPlaying = true;
         
         console.log('CONT playback executed, AudioContext state:', this.#audioCtx.state);
       } catch (err) {
@@ -6521,7 +6508,7 @@ class Engine {
     }
     
     // Detect if running on mobile device
-    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/.test(navigator.userAgent)
 
     this.isReloaded = true
     this.#debug = debug
@@ -6540,58 +6527,6 @@ class Engine {
       // Small delay necessary for older browsers
       this.#loadFactoryBanks()
     }, 125)
-  }
-
-  #wasPlaying = false
-  
-  /**
-   * Handle when tab becomes hidden
-   * This saves the current playback state and manages the audio context
-   */
-  async handleVisibilityHidden() {
-    // Record whether we were playing when the tab was hidden
-    this.#wasPlaying = this.GLOBAL_SSC !== 'STOP';
-    
-    // If we're currently playing, stop playback but remember state
-    if (this.#wasPlaying) {
-      // Stop the scheduled sounds
-      clearTimeout(this.timerID);
-      
-      // Suspend audio context to save resources
-      if (this.#audioCtx && this.#audioCtx.state === 'running') {
-        try {
-          await this.#audioCtx.suspend();
-          console.log('Audio context suspended when tab hidden');
-        } catch (err) {
-          console.error('Failed to suspend audio context:', err);
-        }
-      }
-    }
-  }
-  
-  /**
-   * Handle when tab becomes visible again
-   * This attempts to restore the playback state and ensures audio context is running
-   */
-  async handleVisibilityVisible() {
-    try {
-      // Always try to resume audio context regardless of previous state
-      if (this.#audioCtx && this.#audioCtx.state !== 'running') {
-        await this.ensureAudioContextResumed();
-      }
-      
-      // If we were playing when the tab was hidden, resume playback
-      if (this.#wasPlaying) {
-        // Small delay to ensure audio context is fully resumed
-        setTimeout(() => {
-          // Restart playback using the CONT function
-          this.DisplaySetters['STOP']('', 'CONT');
-          console.log('Playback resumed after tab becomes visible');
-        }, 100);
-      }
-    } catch (err) {
-      console.error('Error resuming after visibility change:', err);
-    }
   }
 }
 

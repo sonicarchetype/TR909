@@ -17,7 +17,7 @@
 
   "CLEAR": "Clear active elements (banks, presets, measures, instruments, selections).",
   "ALT": "With LAST STEP: shorten measure from start or instantly change selected measure. Key ALT.",
-  "SHIFT": "Toggle between play (red) and write (orange) modes. Key SHIFT.",
+  "SHIFT": "Toggle between play (red) and write (orange) modes. Loops the measure for editing when no banks or meausure table is visible. Key SHIFT.",
   "Q": "In TAP mode: insert beats with 8th note quantization.",
 
   "TS-PM": "R: reverse playback. With SHIFT: write reverse into measure. Try it in real time! Key Backspace",
