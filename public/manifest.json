@@ -2,7 +2,7 @@
   "name": "TR-909 Rhythm Composer",
   "short_name": "TR-909",
   "description": "Classic TR-909 drum machine emulation for the modern web with authentic sounds and workflow",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#000000",

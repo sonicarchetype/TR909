@@ -26,6 +26,8 @@ const versionService = {
   currentVersion: null,
   latestVersion: null,
   isDevelopment: false, // Development mode flag
+  checkIntervalId: null, // Holds the interval ID for periodic checking
+  listeners: [], // Array of callback functions to notify on updates
   
   /**
    * Initializes the service and detects development environment
@@ -40,6 +42,7 @@ const versionService = {
     if (hostname === 'localhost' || 
         hostname.startsWith('192.168.') || 
         hostname.startsWith('127.0.0.') ||
+        hostname.startsWith('10.0.0.') ||
         port === '16' || 
         port === '5173' || // Vite default
         port === '3000') { // Other common dev ports
@@ -48,6 +51,74 @@ const versionService = {
     }
     
     return this;
+  },
+  
+  /**
+   * Starts periodic version checking
+   * @param {number} [intervalMinutes=30] - Minutes between checks
+   */
+  startPeriodicChecking: function(intervalMinutes = 30) {
+    if (this.isDevelopment) {
+      console.log('TR909: Periodic version checking disabled in development mode');
+      return;
+    }
+    
+    // Clear any existing interval
+    if (this.checkIntervalId) {
+      clearInterval(this.checkIntervalId);
+    }
+    
+    // Convert minutes to milliseconds
+    const intervalMs = intervalMinutes * 60 * 1000;
+    
+    // Set up the new interval
+    this.checkIntervalId = setInterval(() => {
+      // console.log('TR909: Checking for updates...');
+      this.checkForUpdates((hasUpdate) => {
+        if (hasUpdate) {
+          // console.log(`TR909: Update available! Latest version: ${this.latestVersion}`);
+        } else {
+          // console.log('TR909: No updates available');
+        }
+        
+        // Notify all listeners
+        this.notifyListeners(hasUpdate);
+      });
+    }, intervalMs);
+    
+    // console.log(`TR909: Periodic version checking started (every ${intervalMinutes} minutes)`);
+  },
+  
+  /**
+   * Adds a callback function to be notified when version status changes
+   * @param {Function} callback - Function to call with update status
+   */
+  addListener: function(callback) {
+    if (typeof callback === 'function' && !this.listeners.includes(callback)) {
+      this.listeners.push(callback);
+    }
+  },
+  
+  /**
+   * Removes a callback function from the listeners list
+   * @param {Function} callback - Function to remove
+   */
+  removeListener: function(callback) {
+    this.listeners = this.listeners.filter(listener => listener !== callback);
+  },
+  
+  /**
+   * Notifies all registered listeners with the current update status
+   * @param {boolean} hasUpdate - Whether an update is available
+   */
+  notifyListeners: function(hasUpdate) {
+    this.listeners.forEach(listener => {
+      try {
+        listener(hasUpdate);
+      } catch (error) {
+        console.error('Error in version listener callback');
+      }
+    });
   },
   
   /**
@@ -89,12 +160,13 @@ const versionService = {
             helpData['sbVersion'] = `Current Version ${this.currentVersion}.`;
           }
           
-          // Notify listeners
+          // Notify callback
           if (callback) callback(this.updateAvailable);
         }
       }
     } catch (error) {
-      console.error('Error checking version:', error);
+      console.error('Error checking version');
+      if (callback) callback(false);
     }
   }
 }.init(); // Initialize immediately
@@ -3525,6 +3597,7 @@ function StatusBar () {
     const [isDevMode, setIsDevMode] = useState(false);
     
     useEffect(() => {
+      // Update handler function to update component state
       const updateVersionDisplay = (hasUpdate) => {
         setUpdateAvailable(hasUpdate);
         if (versionService.currentVersion) {
@@ -3533,17 +3606,16 @@ function StatusBar () {
         setIsDevMode(versionService.isDevelopment);
       };
       
+      // Register as a listener with versionService
+      versionService.addListener(updateVersionDisplay);
+      
       // Initial check
       versionService.checkForUpdates(updateVersionDisplay);
       
-      // Set up periodic checking only in production
-      if (!versionService.isDevelopment) {
-        const intervalId = setInterval(() => {
-          versionService.checkForUpdates(updateVersionDisplay);
-        }, 30 * 60 * 1000); // Check every 30 minutes
-        
-        return () => clearInterval(intervalId);
-      }
+      // Clean up listener when component unmounts
+      return () => {
+        versionService.removeListener(updateVersionDisplay);
+      };
     }, []);
     
     return (
@@ -4089,8 +4161,9 @@ function App() {
   useEffect(() => {
     if (!engine) return;
 
-    // Initialize version checking service
+    // Initialize version checking service - do initial check and start periodic checking
     versionService.checkForUpdates();
+    versionService.startPeriodicChecking(30); // Check every 30 minutes
     
     // Detect iOS devices
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -4115,11 +4188,24 @@ function App() {
       
       // Cleanup on unmount
       return () => {
+        // Clear version checking interval when app unmounts
+        if (versionService.checkIntervalId) {
+          clearInterval(versionService.checkIntervalId);
+        }
+        
+        // Remove iOS audio listeners
         ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(event => {
           document.removeEventListener(event, initAudio);
         });
       };
     }
+    
+    // If not iOS, still clean up version checking on unmount
+    return () => {
+      if (versionService.checkIntervalId) {
+        clearInterval(versionService.checkIntervalId);
+      }
+    };
   }, [engine]);
   
   return (
