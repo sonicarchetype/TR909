@@ -244,7 +244,9 @@ class Engine {
           const gainNode = this.#audioCtx.createGain();
           
           // Set it to be nearly silent
-          gainNode.gain.value = 0.001;
+          // gainNode.gain.value = 0.001;
+          gainNode.gain.setValueAtTime(0.001, this.#audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, this.#audioCtx.currentTime + 0.1);
           
           // Connect and play a brief tone
           kickNode.connect(gainNode);
@@ -5642,11 +5644,11 @@ class Engine {
       // Ensure audio context is running
       if (this.#audioCtx.state !== 'running') {
         // The warning is expected, it's not an error.
-        // console.warn('AudioContext not running in scheduler, attempting to resume');
+        console.warn('AudioContext not running in scheduler, attempting to resume');
         this.#audioCtx.resume().catch(err => console.error('Resume error in scheduler:', err));
         
-        // Try again in 100ms if context is still not running
-        this.timerID = setTimeout(this.#scheduler, 100);
+        // Try again in 1ms if context is still not running
+        this.timerID = setTimeout(this.#scheduler, 20);
         return;
       }
 
@@ -5719,7 +5721,6 @@ class Engine {
         clearTimeout(this.timerID)
         this.stopBeatBlinking()
 
-        this.#audioCtx.suspend()
         this.#audioCtx.resume()
 
         // Initialize beat counter based on playback direction
@@ -5739,8 +5740,13 @@ class Engine {
     this.#playbackTable['STOP'] = () => {
       try {
         clearTimeout(this.timerID)
+
         this.startBeatBlinking()
-        this.#audioCtx.suspend()
+        if (this.#audioCtx.state === 'suspended') {
+          setTimeout(() => {
+            this.#audioCtx.resume()
+          }, 1000)
+        }
 
         // console.log('STOP playback executed');
       } catch (err) {

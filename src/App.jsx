@@ -3950,7 +3950,7 @@ function App() {
   // Save state when page visibility changes
   document.onvisibilitychange = function(event) {
     engine && engine.writeLocalStorage()
-    console.log('visibilitychange', navigator.userAgent)
+    // console.log('visibilitychange', navigator.userAgent)
 
     if (document.visibilityState === 'hidden') {
       engine.stopPlayback()
@@ -3966,6 +3966,8 @@ function App() {
   // Add iOS audio context initialization helper
   useEffect(() => {
     if (!engine) return;
+
+    console.log('engine: useEffect', engine)
     
     // Detect iOS devices
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
