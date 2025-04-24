@@ -5644,7 +5644,7 @@ class Engine {
       // Ensure audio context is running
       if (this.#audioCtx.state !== 'running') {
         // The warning is expected, it's not an error.
-        console.warn('AudioContext not running in scheduler, attempting to resume');
+        // console.warn('AudioContext not running in scheduler, attempting to resume');
         this.#audioCtx.resume().catch(err => console.error('Resume error in scheduler:', err));
         
         // Try again in 1ms if context is still not running

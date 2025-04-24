@@ -5,13 +5,99 @@ import {
   Link,
   Route,
   Routes,
-  useNavigate // <-- add this
+  useNavigate
 } from "react-router-dom";
 
 import './App.css';
 import githubLogo from './assets/github-mark-white.svg';
 import helpData from '../src/helpData.json';
 import SEO from './components/SEO';
+
+/**
+ * Version checking service for the TR909 application
+ * @namespace
+ * @property {boolean} updateAvailable - Indicates if an update is available
+ * @property {string|null} currentVersion - The current version of the application
+ * @property {string|null} latestVersion - The latest available version
+ * @property {boolean} isDevelopment - Flag indicating if running in development mode
+ */
+const versionService = {
+  updateAvailable: false,
+  currentVersion: null,
+  latestVersion: null,
+  isDevelopment: false, // Development mode flag
+  
+  /**
+   * Initializes the service and detects development environment
+   * @returns {Object} The initialized versionService object
+   */
+  init: function() {
+    // Check if running on local development server
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+    
+    // Development environments typically use localhost or local IP with dev ports
+    if (hostname === 'localhost' || 
+        hostname.startsWith('192.168.') || 
+        hostname.startsWith('127.0.0.') ||
+        port === '16' || 
+        port === '5173' || // Vite default
+        port === '3000') { // Other common dev ports
+      this.isDevelopment = true;
+      console.log('TR909: Running in development mode - version checking disabled');
+    }
+    
+    return this;
+  },
+  
+  /**
+   * Checks for updates by comparing current version with latest version from GitHub
+   * @async
+   * @param {Function} [callback] - Optional callback function to be called with update status
+   */
+  checkForUpdates: async function(callback) {
+    try {
+      // Get current version
+      const packageResponse = await fetch('/package.json');
+      const packageData = await packageResponse.json();
+      this.currentVersion = packageData.version;
+      
+      // In development mode, just use the local version and skip GitHub check
+      if (this.isDevelopment) {
+        helpData['sbVersion'] = `Development Version ${this.currentVersion}`;
+        if (callback) callback(false);
+        return;
+      }
+      
+      // Get latest version from GitHub
+      const githubResponse = await fetch('https://api.github.com/repos/sonicarchetype/TR909/commits/main');
+      if (githubResponse.ok) {
+        const githubData = await githubResponse.json();
+        const commitMessage = githubData.commit.message;
+        const versionMatch = commitMessage.match(/Update version to ([\d.]+)/);
+        
+        if (versionMatch && versionMatch[1]) {
+          this.latestVersion = versionMatch[1];
+          
+          if (this.latestVersion !== this.currentVersion) {
+            this.updateAvailable = true;
+            
+            // Update help text
+            helpData['sbVersion'] = `Current Version ${this.currentVersion}. Update available to ${this.latestVersion}. Save your progress and update at any time.`;
+          } else {
+            this.updateAvailable = false;
+            helpData['sbVersion'] = `Current Version ${this.currentVersion}.`;
+          }
+          
+          // Notify listeners
+          if (callback) callback(this.updateAvailable);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking version:', error);
+    }
+  }
+}.init(); // Initialize immediately
 
 /**
  * Runs the unit in the debug mode where nearly all component blocks are differed by color.
@@ -3435,22 +3521,42 @@ function StatusBar () {
    */
   function DVersion() {
     const [version, setVersion] = useState("v1.0");
+    const [updateAvailable, setUpdateAvailable] = useState(false);
+    const [isDevMode, setIsDevMode] = useState(false);
     
     useEffect(() => {
-      // Fetch the package.json file to get the version
-      fetch('/package.json')
-        .then(response => response.json())
-        .then(data => {
-          setVersion(`v${data.version}`);
-        })
-        .catch(error => {
-          console.error('Error fetching version:', error);
-          // Fallback to default version if fetch fails
-          setVersion("v1.0");
-        });
+      const updateVersionDisplay = (hasUpdate) => {
+        setUpdateAvailable(hasUpdate);
+        if (versionService.currentVersion) {
+          setVersion(`v${versionService.currentVersion}`);
+        }
+        setIsDevMode(versionService.isDevelopment);
+      };
+      
+      // Initial check
+      versionService.checkForUpdates(updateVersionDisplay);
+      
+      // Set up periodic checking only in production
+      if (!versionService.isDevelopment) {
+        const intervalId = setInterval(() => {
+          versionService.checkForUpdates(updateVersionDisplay);
+        }, 30 * 60 * 1000); // Check every 30 minutes
+        
+        return () => clearInterval(intervalId);
+      }
     }, []);
     
-    return <div>{version}</div>;
+    return (
+      <div style={{ 
+        color: isDevMode 
+          ? 'rgba(255, 255, 0, 0.8)' // Yellow for dev mode
+          : updateAvailable 
+            ? 'rgb(30, 236, 254)' // Cyan for update available
+            : 'white' // Default color
+      }}>
+        {isDevMode ? `DEV ${version}` : version}
+      </div>
+    );
   }
 
   const barBackground = ''
@@ -3758,10 +3864,26 @@ function Tooltip({ payload=null, id, width=null, height=null, position='null'}) 
  */
 function HelpBar () {
   const [helpTextId, setHelpTextId] = useState('noHelp')
+  
   engine.StateSetters['setHelpTextId'] = setHelpTextId
+  
+  // When helpTextId is 'sbVersion', ensure we have updated version information
+  useEffect(() => {
+    if (helpTextId === 'sbVersion' && !versionService.isDevelopment) {
+      versionService.checkForUpdates();
+    }
+  }, [helpTextId]);
+  
+  // Get the help text from helpData
   const helpText = helpData[helpTextId] || 'No help available for this component'
   
-  return <div className='tooltip monospace'>{helpText.toUpperCase()}</div>
+  // Add indicator for development mode when showing version help
+  const displayText = 
+    helpTextId === 'sbVersion' && versionService.isDevelopment
+      ? `DEVELOPMENT MODE - ${helpText}`
+      : helpText;
+  
+  return <div className='tooltip monospace'>{displayText.toUpperCase()}</div>
 }
 
 /**
@@ -3938,8 +4060,8 @@ function Loader() {
 }
 
 /**
- * Main App component that sets up routes and event handlers
- * @returns {JSX.Element} The App component
+ * Main application component that defines routes and handles audio context initialization
+ * @returns {JSX.Element} The application component
  */
 function App() {
   // Set up key event handlers
@@ -3967,7 +4089,8 @@ function App() {
   useEffect(() => {
     if (!engine) return;
 
-    console.log('engine: useEffect', engine)
+    // Initialize version checking service
+    versionService.checkForUpdates();
     
     // Detect iOS devices
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
