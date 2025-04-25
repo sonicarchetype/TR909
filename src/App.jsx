@@ -3445,32 +3445,31 @@ function InfoBar ({width='100%', height=20}) {
 }
 
 /**
- * Credits component displaying a list of contributors with links
- * @returns {JSX.Element} The credits component
+ * Hugs component with links
+ * @returns {JSX.Element} The Hugs component
  */
-function DCredits() {
-  const credits = [
+function DHugs() {
+  const Hugs = [
     { name: "VINCENT RIEMER", link: "https://vincentriemer.com/" },
     { name: "REACT", link: "https://reactjs.org" },
-    { name: "DOCTORMIX", link: "https://youtube.com/@doctormix" },
     { name: "JASON BAKER", link: "mailto:bake0028@gold.tc.umn.edu" },
   ];
 
   const list = []
-  for (let i = 0; i < credits.length; i++) {
-    const isMailto = credits[i].link.startsWith('mailto:');
+  for (let i = 0; i < Hugs.length; i++) {
+    const isMailto = Hugs[i].link.startsWith('mailto:');
     list.push(
       <a 
         key={i} 
-        href={credits[i].link} 
+        href={Hugs[i].link} 
         target={isMailto ? undefined : "_blank"}
         rel={isMailto ? undefined : "noopener noreferrer"}
         style={{ color: 'white' }}
       >
-        {credits[i].name}
+        {Hugs[i].name}
       </a>
     )
-    list.push(<span key={i+credits.length} style={{ margin: '0 6px' }}>•</span>)
+    list.push(<span key={i+Hugs.length} style={{ margin: '0 6px' }}>•</span>)
   }
   list.pop()
 
@@ -3759,13 +3758,13 @@ function StatusBar () {
   // onClick={() => navigate('/manual')}
   />
 
-  {/* Folder for credits display with alert on click */}
-  <Folder id={'sbCredits'} info={<div>~(^ :: ^-)~</div>} width='auto'
+  {/* Folder for Hugs display with alert on click */}
+  <Folder id={'sbHugs'} info={<div>~(^ :: ^-)~</div>} width='auto'
   cursor='pointer'
   pointerEvents='all'
   onClick={() => {!engine.isOngoingAlert&&engine.Alert(
    [ `... @WE GIVE SPECIAL THANKS AND HUGS TO `,
-    (OK) => {engine.Alert()}, false, <DCredits />]
+    (OK) => {engine.Alert()}, false, <DHugs />]
   )}}
   />
 
