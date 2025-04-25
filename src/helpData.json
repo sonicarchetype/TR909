@@ -29,8 +29,8 @@
   "COPY": "With SHIFT: copy banks/presets/measures. Select destination with main keys.",
   "INS/UNDO": "With SHIFT: insert buffer. With ALT: undo last action.",
   "DEL": "Delete measures or slices in PLAY mode.",
-  "SAVE": "Save bank (selected in cyan) or preset to disk. Frequent saving your work is good practice.",
-  "RECALL": "Restore bank or preset to initial state.",
+  "SAVE": "Save bank (select twice to glow cyan) or preset to disk. Frequent saving your banks or presets is good practice.",
+  "RECALL": "Restore bank (select twice to glow cyan) or preset to initial state.",
   "LOAD": "Load bank or preset from disk.",
   
   "BDtun": "BASS DRUM tuning: left = deep, right = punchy.",
@@ -114,13 +114,12 @@
   "sbBank": "Current bank name. Toggles bank view. Key B",
   "sbPreset": "Current preset name. Toggles preset view. Key P. Alt + Main Key: switch default instrument. With SHIFT: Alt + Main Key, rapidly change selected measure to a new one.",
   "sbPresetInfo": "Preset info: [measure count, last selected, last in preset].",
-  "sbScale": "Current measure scale. Toggle bank/measure view to see grid.",
+  "sbScale": "Current measure scale. Toggle bank (KEY B) / measure (KEY P) view OFF to see grid. Change scale (measure will loop) with SCALE key while SHIFT key glows orange.",
   "sbInst": "Selected instrument abreviation (same as orange underline).",
   "sbCycle": "Infinity symbol = measure cycles. Sequences loop if last measure cycles.",
   "sbRender": "Export preset to WAV file. Works during playback.",
   "sbHelp": "Toggle on and hover (click on mobile) over UI elements for hints.",
-  "sbVersion": "Current version. When highlighted in cyan, an update is available on GitHub.",
-  "sbCredits": "Thanks and Hugs.",
+  "sbVersion": "Loading the app brings the latest version. Save the entire bank if you've crafted many presets. Only the current preset will be recovered after new reload.",
 
   "pL": "[Measure's key on QWERTY keyboard layout, measure number]. Glowing white = measure contains data.",
 

@@ -20,6 +20,7 @@
 - [Contribution Notes](#contribution-notes)
 - [License](#license)
 - [Afterword for React purists](#afterword-for-react-purists)
+- [Hugs & Thanks](#hugs--thanks)
 
 ---
 
@@ -209,3 +210,18 @@ For the reason of
 
 
 **Like challenges? Please, do contribute!**
+
+## Hugs & Thanks
+
+- [@vincentriemer](https://github.com/vincentriemer) for the io-808 project
+- [jason baker](mailto:bake0028@gold.tc.umn.edu) for sounds
+- [doctormix](https://www.youtube.com/@doctormix) for excellent TR-909 refresher
+- [Roland](https://www.roland.com) for the TR-909
+- [@reactjs](https://github.com/reactjs) for the React framework
+- [@vitejs](https://github.com/vitejs) for the Vite build tool
+- [@npmjs](https://github.com/npmjs) for the npm package manager
+- [@nodejs](https://github.com/nodejs) for the Node.js runtime
+- [@v8](https://github.com/v8) for the V8 engine
+- [@javaScriptCore](https://github.com/apple-opensource/JavaScriptCore) for the JavaScriptCore engine
+- [@spidermonkey](https://github.com/spidermonkey) for the SpiderMonkey engine
+- [@cloudflare](https://github.com/cloudflare) for deployment service
